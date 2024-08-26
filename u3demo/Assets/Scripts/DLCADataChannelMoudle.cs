@@ -51,10 +51,7 @@ public class DolitDataChannel : MonoBehaviour
     [DllImport("dlca-data-channelmt")]
     private static extern DLCACode dlca_data_channel_send(DLCADataType dataType,IntPtr data,int size);
 
-    /**
-     * 初始化数据通信通道。
-     */
-    public static bool InitChannel()
+    public static int GetPort()
     {
         string[] commandLines = System.Environment.GetCommandLineArgs();
         foreach (string cmdLine in commandLines)
@@ -64,47 +61,55 @@ public class DolitDataChannel : MonoBehaviour
             {
                 splits = cmdLine.Split("=");
                 if (splits.Length != 2)
-                    return false;
-                if (Int32.TryParse(splits[1], out int port))
-                {
-                    if (port > 0)
-                    {
-                        onConenctedCFunc = (DLCAConnectRes res, IntPtr userData) => {
-                            if(onConnectedCallback != null)
-                                onConnectedCallback.Invoke(res);
-                        };
-
-                        onDataCFunc = (DLCADataType dataType, IntPtr data, int size, IntPtr userData) => {
-                            byte[] b = new byte[size];
-                            Marshal.Copy(data, b, 0, size);
-                            if (dataType == DLCADataType.DLCA_DATA_TYPE_TEXT)
-                            {
-                                string text = System.Text.Encoding.UTF8.GetString(b);
-                                if(onTextDataCallback != null)
-                                    onTextDataCallback.Invoke(text);
-                            }
-                        };
-
-                        onDisConnectedCFunc = (DLCADisconnectedCode disConnectedCode, IntPtr userData) => {
-
-                        };
-
-                        if (dlca_data_channel_connect(port, 0, onConenctedCFunc, onDataCFunc, onDisConnectedCFunc, IntPtr.Zero) == DLCACode.DLCACodeSuccessfully)
-                        {
-                            return true;
-                        }
-                    }
-                    else
-                    {
-                        Debug.Log("parse dlca port failed,port < 0.");
-                    }
+                    return 0;
+                if (Int32.TryParse(splits[1], out int port)) {
+                    return port;
                 }
-                else
-                {
-                    Debug.Log("parse dlca port failed");
-                    return false;
-                }
+                return 0;
             }
+        }
+        return 0;
+    }
+
+    /**
+     * 初始化数据通信通道。
+     */
+    public static bool InitChannel()
+    {
+        int port = GetPort();
+        if (port > 0)
+        {
+            onConenctedCFunc = (DLCAConnectRes res, IntPtr userData) =>
+            {
+                if (onConnectedCallback != null)
+                    onConnectedCallback.Invoke(res);
+            };
+
+            onDataCFunc = (DLCADataType dataType, IntPtr data, int size, IntPtr userData) =>
+            {
+                byte[] b = new byte[size];
+                Marshal.Copy(data, b, 0, size);
+                if (dataType == DLCADataType.DLCA_DATA_TYPE_TEXT)
+                {
+                    string text = System.Text.Encoding.UTF8.GetString(b);
+                    if (onTextDataCallback != null)
+                        onTextDataCallback.Invoke(text);
+                }
+            };
+
+            onDisConnectedCFunc = (DLCADisconnectedCode disConnectedCode, IntPtr userData) =>
+            {
+
+            };
+
+            if (dlca_data_channel_connect(port, 0, onConenctedCFunc, onDataCFunc, onDisConnectedCFunc, IntPtr.Zero) == DLCACode.DLCACodeSuccessfully)
+            {
+                return true;
+            }
+        }
+        else
+        {
+            Debug.Log("parse dlca port failed,port < 0.");
         }
         return false;
     }

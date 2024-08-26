@@ -7,6 +7,8 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+// 此文件为数据通信组件的测试Demo
+
 public class Test : MonoBehaviour
 {
     static bool onConenctedFlag = false;
