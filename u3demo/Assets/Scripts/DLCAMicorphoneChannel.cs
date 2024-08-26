@@ -37,10 +37,13 @@ public class DLCAMicorphoneChannel : MonoBehaviour
 
     }
 
+
     private void OnMessage(object sender, MessageEventArgs e)
     {
+        // 麦克风数据先触发一帧Text Json数据来描述音频格式，然后紧接着会触发一帧 Binary为实际语音的pcm
         if (e.IsBinary)
         {
+            // 此处为接收到的pcm数据。
             Debug.Log(string.Format("Receive Pcm Bytes Len: {0}", e.RawData.Length));
         }
         else if (e.IsText)
