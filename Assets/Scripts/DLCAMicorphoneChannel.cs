@@ -12,10 +12,7 @@ public class DLCAMicorphoneChannel : MonoBehaviour
     // Start is called before the first frame update
     async void Start()
     {
-        Application.targetFrameRate = 60;
-
-        int port = DolitDataChannel.GetPort();
-        port = 3003;
+        int port = DLCADataChannel.GetPort();
         if (port <= 0)
         {
             Debug.Log("dlca port is zero,please cheack enabed data chennel from cms app settings.");
@@ -67,7 +64,8 @@ public class DLCAMicorphoneChannel : MonoBehaviour
     void Update()
     {
 #if !UNITY_WEBGL || UNITY_EDITOR
-        websocket.DispatchMessageQueue();
+        if(websocket != null)
+             websocket.DispatchMessageQueue();
 #endif
     }
 }

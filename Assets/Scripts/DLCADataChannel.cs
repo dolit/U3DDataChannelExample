@@ -1,9 +1,9 @@
-ï»¿using System;
+using System;
 using UnityEngine;
-using UnityWebSocket;
+using NativeWebSocket;
 using UnityEngine.UI;
 
-public class DolitDataChannel : MonoBehaviour
+public class DLCADataChannel : MonoBehaviour
 {
     bool onConenctedFlag;
     private WebSocket websocket;
@@ -30,83 +30,68 @@ public class DolitDataChannel : MonoBehaviour
     }
 
     /**
-     * åˆå§‹åŒ–æ•°æ®é€šä¿¡é€šé“ã€‚
+     * ³õÊ¼»¯Êı¾İÍ¨ĞÅÍ¨µÀ¡£
      */
-    public bool InitChannel()
+    async void Start()
     {
         int port = GetPort();
         if (port > 0)
         {
-            // åˆ›å»ºå®ä¾‹
+            // ´´½¨ÊµÀı
             string address = "ws://127.0.0.1:" + port + "/inner/data_channel";
             websocket = new WebSocket(address);
 
-            // æ³¨å†Œå›è°ƒ
-            websocket.OnOpen += OnOpen;
-            websocket.OnClose += OnClose;
-            websocket.OnMessage += OnMessage;
-            websocket.OnError += OnError;
+            // ×¢²á»Øµ÷
+            websocket.OnOpen += () =>
+            {
+                onConenctedFlag = true;
+                Debug.Log("DolitDataChannel Connection open!");
+            };
 
-            // è¿æ¥
-            websocket.ConnectAsync();
+            websocket.OnError += (e) =>
+            {
+                Debug.Log("DolitDataChannel Error! " + e);
+                onConenctedFlag = false;
+            };
+
+            websocket.OnClose += (e) =>
+            {
+                Debug.Log("DolitDataChannel Connection closed!");
+                onConenctedFlag = false;
+            };
+
+            websocket.OnMessage += (bytes) =>
+            {
+                // bytes.
+                string message = System.Text.Encoding.UTF8.GetString(bytes);
+                Debug.Log(string.Format("DLCADataChannel Receive Text: {0}", message));
+                GameObject go = GameObject.Find("Canvas/Text");
+                if (go != null)
+                {
+                    Text ta = go.GetComponent<Text>();
+                    if (ta != null)
+                        ta.text = "½ÓÊÕµ½À´×Ô¿Í»§¶ËÎÄ±¾:" + message;
+                }
+            };
+
             Debug.Log("DLCADataChannel beging connecting...");
+            // Á¬½Ó
+            await websocket.Connect();
+            
         }
         else
         {
             Debug.Log("DLCADataChannel parse port failed,port <= 0. please check enable data channel features from cms app settings.");
         }
-        return false;
     }
 
     /**
-     * å‘é€æ–‡æœ¬æ•°æ®ç»™å®¢æˆ·ç«¯ã€‚
+     * ·¢ËÍÎÄ±¾Êı¾İ¸ø¿Í»§¶Ë¡£
      */
     public void AsyncSendText(string text)
     {
-        websocket.SendAsync(text);
+        websocket.SendText(text);
         Debug.Log("DLCADataChannel send text: " + text);
-    }
-
-
-    void OnOpen(object sender, OpenEventArgs openArgs)
-    {
-        onConenctedFlag = true;
-        Debug.Log("DLCADataChannel connected");
-    }
-
-
-    private void OnMessage(object sender, MessageEventArgs e)
-    {
-        // éº¦å…‹é£æ•°æ®å…ˆè§¦å‘ä¸€å¸§Text Jsonæ•°æ®æ¥æè¿°éŸ³é¢‘æ ¼å¼ï¼Œç„¶åç´§æ¥ç€ä¼šè§¦å‘ä¸€å¸§ Binaryä¸ºå®é™…è¯­éŸ³çš„pcm
-        if (e.IsBinary)
-        {
-            // æ­¤å¤„ä¸ºæ¥æ”¶åˆ°çš„pcmæ•°æ®ã€‚
-            Debug.Log(string.Format("DLCADataChannel Receive Bytes Len: {0}", e.RawData.Length));
-        }
-        else if (e.IsText)
-        {
-            //Debug.Log(string.Format("DLCADataChannel Receive Text: {0}", e.Data));
-            //
-            //GameObject go = GameObject.Find("Canvas/Text");
-            //if (go != null)
-            //{
-            //    Text ta = go.GetComponent<Text>();
-            //    if (ta != null)
-            //        ta.text = "æ¥æ”¶åˆ°æ¥è‡ªå®¢æˆ·ç«¯æ–‡æœ¬:" + e.Data;
-            //}
-        }
-    }
-
-    private void OnClose(object sender, CloseEventArgs e)
-    {
-        Debug.Log(string.Format("DLCADataChannel Closed: StatusCode: {0}, Reason: {1}", e.StatusCode, e.Reason));
-        onConenctedFlag = false;
-    }
-
-    private void OnError(object sender, ErrorEventArgs e)
-    {
-        Debug.Log(string.Format("DLCADataChannel Error: {0}", e.Message));
-        onConenctedFlag = false;
     }
 
     private float time = 0;
@@ -119,7 +104,7 @@ public class DolitDataChannel : MonoBehaviour
         time += Time.deltaTime;
         if (time >= 1)
         {
-            // å‘é€å­—ç¬¦ä¸²ç»™å®¢æˆ·ç«¯
+            // ·¢ËÍ×Ö·û´®¸ø¿Í»§¶Ë
             time = 0;
             string str = "Test Data " + index++;
             if (onConenctedFlag)
@@ -128,6 +113,11 @@ public class DolitDataChannel : MonoBehaviour
                 AsyncSendText(str);
             }
         }
+
+#if !UNITY_WEBGL || UNITY_EDITOR
+        if(websocket != null)
+            websocket.DispatchMessageQueue();
+#endif
     }
 
 }
